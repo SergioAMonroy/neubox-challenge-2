@@ -1,4 +1,7 @@
 <?php
+/**
+ * Clase para el proceso de los datos del control.
+ */
 class procesaDatosBeanCtrl{
     /**
      * Genera el resumen del juego con cada linea de marcador
