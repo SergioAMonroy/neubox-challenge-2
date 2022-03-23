@@ -4,6 +4,7 @@
  * Clase con el control de apertura y validación del archivo de entrada.
  */
 class archivoEntradaCtrl {
+
     private $partidas;
     private $marcadores = [];
 
@@ -14,8 +15,12 @@ class archivoEntradaCtrl {
      */
     public function leeArchivo($nombreArchivo) {
         $arrayLineas = file($nombreArchivo);
+        try {
+            $validadasLineas = $this->validaLineas($arrayLineas);
+        } catch (Exception $ex) {
+            throw $ex;
+        }
 
-        $validadasLineas = $this->validaLineas($arrayLineas);
         if ($validadasLineas) {
             $bean = new challenge2Bean();
             $bean->partidas = $this->partidas;
@@ -30,13 +35,20 @@ class archivoEntradaCtrl {
      * @return Boolean Con las validaciones por línea acumuladas.
      */
     private function validaLineas($arrayLineas) {
-        
+
         $conteoArrayLineas = count($arrayLineas);
-        $validadasLineas = $this->validaPrimerLineaEntrada(trim($arrayLineas[0]));
-        for($i = 1; $i<$conteoArrayLineas; $i++){
-            $validadasLineas = $validadasLineas && $this->validaSegundasLineasEntrada(trim($arrayLineas[$i]));
+        try {
+            $validadasLineas = $this->validaPrimerLineaEntrada(trim($arrayLineas[0]));
+            for ($i = 1; $i < $conteoArrayLineas; $i++) {
+                $validadasLineas = $validadasLineas && $this->validaSegundasLineasEntrada(trim($arrayLineas[$i]));
+            }
+            if($this->partidas != count($this->marcadores)){
+                throw new Exception('La cantidad de partidas no corresponde con el numero de marcadores en el archivo ' . $this->partidas . ' != ' .count($this->marcadores));
+            }
+        } catch (Exception $ex) {
+            throw $ex;
         }
-        $validadasLineas = $validadasLineas && $this->partidas == count($this->marcadores);
+
         return $validadasLineas;
     }
 
@@ -47,17 +59,20 @@ class archivoEntradaCtrl {
      * @throws Exception
      */
     private function validaPrimerLineaEntrada($lineaUno) {
-        
+        $limiteInferiorPartidas = 1;
         $limiteSuperiorPartidas = 10000;
 
         $partidas = trim($lineaUno);
 
 
         if (preg_match('/[^0-9]/', $partidas)) {
-            throw new Exception('El elemento no es una cadena de números');
+            throw new Exception('El elemento n no es una cadena de números');
         }
         $n = (int) $partidas;
 
+        if ($n<$limiteInferiorPartidas) {
+            throw new Exception('El número de partidas no está dentro de los límites');
+        }
         if ($n > $limiteSuperiorPartidas) {
             throw new Exception('El número de partidas no está dentro de los límites');
         }
@@ -75,7 +90,7 @@ class archivoEntradaCtrl {
         $numeroElementosEnLinea = 2;
 
         $arrayElementosLinea = explode(" ", $linea);
-        
+
         if (count($arrayElementosLinea) != $numeroElementosEnLinea) {
             throw new Exception('Elementos de linea  de resultados no coinciden con especificación');
         }
@@ -88,9 +103,9 @@ class archivoEntradaCtrl {
         }
 
         $marcador = new marcadoresBean();
-        $marcador->marcador1= (int)$arrayElementosLinea[0];
-        $marcador->marcador2= (int)$arrayElementosLinea[1];
-        
+        $marcador->marcador1 = (int) $arrayElementosLinea[0];
+        $marcador->marcador2 = (int) $arrayElementosLinea[1];
+
         array_push($this->marcadores, $marcador);
         return true;
     }

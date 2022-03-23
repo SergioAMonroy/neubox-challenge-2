@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/ctrl/archivoEntradaCtrl.php';
 require_once __DIR__ . '/ctrl/procesaDatosBeanCtrl.php';
 require_once __DIR__ . '/bean/challenge2Bean.php';
@@ -10,16 +11,35 @@ require_once __DIR__ . '/bean/snapshotJuegoBean.php';
  * @param String $nombreArchivoEntrada La ubicación donde se encuentra el archivo de entrada.
  * @param String $archivoDeSalida La ruta donde se almacenará el archivo de salida.
  */
-function procesaArchivo($nombreArchivoEntrada, $archivoDeSalida){
+function procesaArchivo($nombreArchivoEntrada, $archivoDeSalida) {
     $ctrlEntrada = new archivoEntradaCtrl();
-	$beanChallenge2 = $ctrlEntrada->leeArchivo($nombreArchivoEntrada);
+    try {
+        $beanChallenge2 = $ctrlEntrada->leeArchivo($nombreArchivoEntrada);
+
+
+        $ctrlProceso = new procesaDatosBeanCtrl();
+        $marcadores = $ctrlProceso->calculaSnapshotsDeJuego($beanChallenge2->marcadores);
+
+        $ventajaMaxima = $ctrlProceso->obtenLaVentajaMaxima($marcadores);
+
+        $ctrlProceso->almacenaArchivoSalida($archivoDeSalida, $ventajaMaxima);
+    } catch (MyException $e) {
+        throw $e;
+    }
     
-    $ctrlProceso =new procesaDatosBeanCtrl();
-	$marcadores = $ctrlProceso->calculaSnapshotsDeJuego($beanChallenge2->marcadores);
-    
-    $ventajaMaxima = $ctrlProceso->obtenLaVentajaMaxima($marcadores);
-   
-    $ctrlProceso->almacenaArchivoSalida($archivoDeSalida, $ventajaMaxima);
+    return '{"mensaje":"Exito"}';
 }
 
-procesaArchivo(__DIR__ ."/entrada.txt", __DIR__ . "/salida.txt");
+$uploadfile = __DIR__ . '/subidas/entrada.txt';
+
+if (!move_uploaded_file($_FILES['archivo']['tmp_name'], $uploadfile)) {
+    http_response_code(404);
+    echo '{"mensaje":"No fue posible subir el archivo"}';
+}
+
+try {
+    echo procesaArchivo(__DIR__ . "/subidas/entrada.txt", __DIR__ . "/subidas/salida.txt");
+} catch (Exception $e) {
+    http_response_code(404);
+    echo '{"mensaje":"' . $e->getMessage() . '"}';
+} 
